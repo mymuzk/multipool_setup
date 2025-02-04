@@ -1,55 +1,53 @@
 #####################################################
 # Source https://mailinabox.email/ https://github.com/mail-in-a-box/mailinabox
 # Updated by cryptopool.builders for crypto use...
+# 源自 Mail-in-a-Box 项目，由 cryptopool.builders 更新用于加密货币用途
+# 更新支持 Ubuntu 22.04
 #####################################################
 
 source /etc/functions.sh
 clear
-echo -e " Setting our global variables..."
+echo -e " 正在设置全局变量..."
 
-# If the machine is behind a NAT, inside a VM, etc., it may not know
-# its IP address on the public network / the Internet. Ask the Internet
-# and possibly confirm with user.
+# 如果机器在 NAT 后面、在虚拟机内等，它可能不知道自己在公共网络/互联网上的 IP 地址
+# 询问互联网并可能与用户确认
 if [ -z "${PUBLIC_IP:-}" ]; then
-# Ask the Internet.
+# 询问互联网
 GUESSED_IP=$(get_publicip_from_web_service 4)
 
-# On the first run, if we got an answer from the Internet then don't
-# ask the user.
+# 在第一次运行时，如果我们从互联网得到答案，就不要询问用户
 if [[ -z "${DEFAULT_PUBLIC_IP:-}" && ! -z "$GUESSED_IP" ]]; then
 PUBLIC_IP=$GUESSED_IP
 
-# On later runs, if the previous value matches the guessed value then
-# don't ask the user either.
+# 在后续运行中，如果之前的值与猜测值匹配，也不要询问用户
 elif [ "${DEFAULT_PUBLIC_IP:-}" == "$GUESSED_IP" ]; then
 PUBLIC_IP=$GUESSED_IP
 fi
 
 if [ -z "${PUBLIC_IP:-}" ]; then
-input_box "Public IP Address" \
-"Enter the public IP address of this machine, as given to you by your ISP.
-\n\nPublic IP address:" \
+input_box "公网 IP 地址" \
+"请输入此机器的公网 IP 地址（由您的 ISP 提供）。
+\n\n公网 IP 地址:" \
 "$DEFAULT_PUBLIC_IP" \
 PUBLIC_IP
 
 if [ -z "$PUBLIC_IP" ]; then
-# user hit ESC/cancel
+# 用户按下了 ESC/取消
 exit
 fi
 fi
 fi
 
-# Same for IPv6. But it's optional. Also, if it looks like the system
-# doesn't have an IPv6, don't ask for one.
+# IPv6 的处理方式相同，但它是可选的
+# 如果系统看起来没有 IPv6，就不要询问
 if [ -z "${PUBLIC_IPV6:-}" ]; then
-	# Ask the Internet.
+	# 询问互联网
 	GUESSED_IP=$(get_publicip_from_web_service 6)
 	MATCHED=0
 	if [[ -z "${DEFAULT_PUBLIC_IPV6:-}" && ! -z "$GUESSED_IP" ]]; then
 		PUBLIC_IPV6=$GUESSED_IP
 	elif [[ "${DEFAULT_PUBLIC_IPV6:-}" == "$GUESSED_IP" ]]; then
-		# No IPv6 entered and machine seems to have none, or what
-		# the user entered matches what the Internet tells us.
+		# 没有输入 IPv6 且机器似乎没有，或者用户输入的内容与互联网告诉我们的匹配
 		PUBLIC_IPV6=$GUESSED_IP
 		MATCHED=1
 	elif [[ -z "${DEFAULT_PUBLIC_IPV6:-}" ]]; then
@@ -57,44 +55,26 @@ if [ -z "${PUBLIC_IPV6:-}" ]; then
 	fi
 
 	if [[ -z "${PUBLIC_IPV6:-}" && $MATCHED == 0 ]]; then
-		input_box "IPv6 Address (Optional)" \
-			"Enter the public IPv6 address of this machine, as given to you by your ISP.
-			\n\nLeave blank if the machine does not have an IPv6 address.
-			\n\nPublic IPv6 address:" \
+		input_box "IPv6 地址（可选）" \
+			"请输入此机器的公网 IPv6 地址（由您的 ISP 提供）。
+			\n\n如果机器没有 IPv6 地址，请留空。
+			\n\n公网 IPv6 地址:" \
 			${DEFAULT_PUBLIC_IPV6:-} \
 			PUBLIC_IPV6
 
 		if [ ! $PUBLIC_IPV6_EXITCODE ]; then
-			# user hit ESC/cancel
+			# 用户按下了 ESC/取消
 			exit
 		fi
 	fi
 fi
 
-# Get the IP addresses of the local network interface(s) that are connected
-# to the Internet. We need these when we want to have services bind only to
-# the public network interfaces (not loopback, not tunnel interfaces).
-# if [ -z "$PRIVATE_IP" ]; then
-# DEFAULT_PRIVATE_IP=$(get_default_privateip 4)
-# input_box "Private IP Address (Optional)" \
-# "Enter the private IP address of this machine, as given to you by your ISP.
-# \n\nLeave as your public IP if the machine does not have a private IP address.
-# \n\nPrivate IP address:" \
-# $DEFAULT_PRIVATE_IP \
-# PRIVATE_IP
-#
-#  if [ -z "$PRIVATE_IP" ]; then
-# user hit ESC/cancel
-# exit
-#  fi
-# fi
-
-# Automatic configuration, e.g. as used in our Vagrant configuration.
+# 自动配置，例如在我们的 Vagrant 配置中使用
 if [ "$PUBLIC_IP" = "auto" ]; then
-# Use a public API to get our public IP address, or fall back to local network configuration.
+# 使用公共 API 获取我们的公网 IP 地址，或回退到本地网络配置
 PUBLIC_IP=$(get_publicip_from_web_service 4 || get_default_privateip 4)
 fi
 if [ "$PUBLIC_IPV6" = "auto" ]; then
-# Use a public API to get our public IPv6 address, or fall back to local network configuration.
+# 使用公共 API 获取我们的公网 IPv6 地址，或回退到本地网络配置
 PUBLIC_IPV6=$(get_publicip_from_web_service 6 || get_default_privateip 6)
 fi

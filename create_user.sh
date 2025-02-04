@@ -2,75 +2,79 @@
 #####################################################
 # Source https://mailinabox.email/ https://github.com/mail-in-a-box/mailinabox
 # Updated by cryptopool.builders for crypto use...
+# 源自 Mail-in-a-Box 项目，由 cryptopool.builders 更新用于加密货币用途
+# 更新支持 Ubuntu 22.04
 #####################################################
 
 source /etc/functions.sh
 cd ~/multipool/install
 clear
 
-# Welcome
-message_box "Ultimate Crypto-Server Setup Installer" \
-"Hello and thanks for using the Ultimate Crypto-Server Setup Installer!
-\n\nInstallation for the most part is fully automated. In most cases any user responses that are needed are asked prior to the installation.
-\n\nNOTE: You should only install this on a brand new Ubuntu 16.04 or Ubuntu 18.04 installation."
-# Root warning message box
-message_box "Ultimate Crypto-Server Setup Installer" \
-"Naughty, naughty! You are trying to install this as the root user!
-\n\nRunning any application as root is a serious security risk.
-\n\nTherefore we make you create a user account :)"
+# 欢迎信息
+message_box "终极加密货币服务器安装程序" \
+"欢迎使用终极加密货币服务器安装程序！
+\n\n安装过程大部分是全自动的。在大多数情况下，所需的用户响应会在安装之前询问。
+\n\n注意：您应该只在全新的 Ubuntu 22.04 系统上安装此程序。"
 
-# Ask if SSH key or password user
-dialog --title "Create New User With SSH Key" \
---yesno "Do you want to create your new user with SSH key login?
-Selecting no will create user with password login only." 7 60
+# Root 用户警告信息框
+message_box "终极加密货币服务器安装程序" \
+"警告！您正在尝试以 root 用户身份安装！
+\n\n以 root 用户运行任何应用程序都会带来严重的安全风险。
+\n\n因此我们要求您创建一个普通用户账户 :)"
+
+# 询问是否使用 SSH 密钥或密码登录
+dialog --title "使用 SSH 密钥创建新用户" \
+--yesno "您想要使用 SSH 密钥登录方式创建新用户吗？
+选择"否"将创建仅使用密码登录的用户。" 7 60
 response=$?
 case $response in
    0) UsingSSH=yes;;
    1) UsingSSH=no;;
-   255) echo "[ESC] key pressed.";;
+   255) echo "[ESC] 键被按下.";;
 esac
 
-# If Using SSH Key Login
+# 如果使用 SSH 密钥登录
 if [[ ("$UsingSSH" == "yes") ]]; then
   clear
     if [ -z "${yiimpadmin:-}" ]; then
       DEFAULT_yiimpadmin=yiimpadmin
-      input_box "New Account Name" \
-      "Please enter your desired user name.
-      \n\nUser Name:" \
+      input_box "新账户名称" \
+      "请输入您想要使用的用户名。
+      \n\n用户名:" \
       ${DEFAULT_yiimpadmin} \
       yiimpadmin
 
       if [ -z "${yiimpadmin}" ]; then
-        # user hit ESC/cancel
+        # 用户按下了 ESC/取消
         exit
       fi
     fi
 
     if [ -z "${ssh_key:-}" ]; then
       DEFAULT_ssh_key=PublicKey
-      input_box "Please open PuTTY Key Generator on your local machine and generate a new public key." \
-      "To paste your Public key use ctrl shift right click.
-      \n\nPublic Key:" \
+      input_box "请在本地机器上打开 PuTTY Key Generator 并生成新的公钥。" \
+      "要粘贴公钥，请使用 ctrl+shift+右键。
+      \n\n公钥:" \
       ${DEFAULT_ssh_key} \
       ssh_key
 
       if [ -z "${ssh_key}" ]; then
-        # user hit ESC/cancel
+        # 用户按下了 ESC/取消
         exit
       fi
     fi
 
-  # create random user password
+  # 创建随机用户密码
   RootPassword=$(openssl rand -base64 8 | tr -d "=+/")
   clear
 
-  # Add user
-  echo -e "Adding new user and setting SSH key...$COL_RESET"
+  # 添加用户
+  echo -e "正在添加新用户并设置 SSH 密钥...$COL_RESET"
   sudo adduser ${yiimpadmin} --gecos "First Last,RoomNumber,WorkPhone,HomePhone" --disabled-password
   echo -e "${RootPassword}\n${RootPassword}" | passwd ${yiimpadmin}
   sudo usermod -aG sudo ${yiimpadmin}
-  # Create SSH Key structure
+  
+  # 创建 SSH 密钥结构
   mkdir -p /home/${yiimpadmin}/.ssh
   touch /home/${yiimpadmin}/.ssh/authorized_keys
   chown -R ${yiimpadmin}:${yiimpadmin} /home/${yiimpadmin}/.ssh
@@ -79,9 +83,9 @@ if [[ ("$UsingSSH" == "yes") ]]; then
   authkeys=/home/${yiimpadmin}/.ssh/authorized_keys
   echo "$ssh_key" > "$authkeys"
 
-  # enabling multipool command
+  # 启用 multipool 命令
   echo '# yiimp
-  # It needs passwordless sudo functionality.
+  # 需要无密码 sudo 功能
   '""''"${yiimpadmin}"''""' ALL=(ALL) NOPASSWD:ALL
   ' | sudo -E tee /etc/sudoers.d/${yiimpadmin} >/dev/null 2>&1
 
@@ -91,11 +95,11 @@ if [[ ("$UsingSSH" == "yes") ]]; then
   ' | sudo -E tee /usr/bin/multipool >/dev/null 2>&1
   sudo chmod +x /usr/bin/multipool
 
-  # Check required files and set global variables
+  # 检查必需文件并设置全局变量
   cd $HOME/multipool/install
   source pre_setup.sh
 
-  # Create the STORAGE_USER and STORAGE_ROOT directory if they don't already exist.
+  # 如果 STORAGE_USER 和 STORAGE_ROOT 目录不存在则创建
   if ! id -u $STORAGE_USER >/dev/null 2>&1; then
     sudo useradd -m $STORAGE_USER
   fi
@@ -103,8 +107,7 @@ if [[ ("$UsingSSH" == "yes") ]]; then
     sudo mkdir -p $STORAGE_ROOT
   fi
 
-  # Save the global options in /etc/multipool.conf so that standalone
-  # tools know where to look for data.
+  # 将全局选项保存到 /etc/multipool.conf
   echo 'STORAGE_USER='"${STORAGE_USER}"'
   STORAGE_ROOT='"${STORAGE_ROOT}"'
   PUBLIC_IP='"${PUBLIC_IP}"'
@@ -117,67 +120,67 @@ if [[ ("$UsingSSH" == "yes") ]]; then
   sudo setfacl -m u:${yiimpadmin}:rwx /home/${yiimpadmin}/multipool
   sudo rm -r $HOME/multipool
   clear
-  echo "New User is installed make sure you saved your private key..."
-  echo -e "$RED Please reboot system and log in as the new user and type$COL_RESET $GREEN multipool$COL_RESET $RED to continue setup...$COL_RESET"
+  echo "新用户已安装，请确保您已保存私钥..."
+  echo -e "$RED 请重启系统并以新用户身份登录，然后输入$COL_RESET $GREEN multipool$COL_RESET $RED 继续安装...$COL_RESET"
   exit 0
 fi
 
-# New User Password Login Creation
+# 新用户密码登录创建
 if [ -z "${yiimpadmin:-}" ]; then
   DEFAULT_yiimpadmin=yiimpadmin
-  input_box "New Account Name" \
-  "Please enter your desired user name.
-  \n\nUser Name:" \
+  input_box "新账户名称" \
+  "请输入您想要使用的用户名。
+  \n\n用户名:" \
   ${DEFAULT_yiimpadmin} \
   yiimpadmin
 
   if [ -z "${yiimpadmin}" ]; then
-    # user hit ESC/cancel
+    # 用户按下了 ESC/取消
     exit
   fi
 fi
 
 if [ -z "${RootPassword:-}" ]; then
   DEFAULT_RootPassword=$(openssl rand -base64 8 | tr -d "=+/")
-  input_box "User Password" \
-  "Enter your new user password or use this randomly system generated one.
-  \n\nUnfortunatley dialog doesnt let you copy. So you have to write it down.
-  \n\nUser password:" \
+  input_box "用户密码" \
+  "输入您的新用户密码或使用这个系统随机生成的密码。
+  \n\n很遗憾 dialog 不允许复制。所以您必须记下来。
+  \n\n用户密码:" \
   ${DEFAULT_RootPassword} \
   RootPassword
 
   if [ -z "${RootPassword}" ]; then
-    # user hit ESC/cancel
+    # 用户按下了 ESC/取消
     exit
   fi
 fi
 
 clear
 
-dialog --title "Verify Your Responses" \
---yesno "Please verify your answers before you continue:
+dialog --title "确认您的回答" \
+--yesno "请在继续之前确认您的答案：
 
-New User Name : ${yiimpadmin}
-New User Pass : ${RootPassword}" 8 60
+新用户名：${yiimpadmin}
+新用户密码：${RootPassword}" 8 60
 
-# Get exit status
-# 0 means user hit [yes] button.
-# 1 means user hit [no] button.
-# 255 means user hit [Esc] key.
+# 获取退出状态
+# 0 表示用户点击了 [是] 按钮
+# 1 表示用户点击了 [否] 按钮
+# 255 表示用户按下了 [Esc] 键
 response=$?
 case $response in
 
 0)
 clear
-echo -e " Adding new user and password...$COL_RESET"
+echo -e " 正在添加新用户和密码...$COL_RESET"
 
 sudo adduser ${yiimpadmin} --gecos "First Last,RoomNumber,WorkPhone,HomePhone" --disabled-password
 echo -e ""${RootPassword}"\n"${RootPassword}"" | passwd ${yiimpadmin}
 sudo usermod -aG sudo ${yiimpadmin}
 
-# enabling multipool command
+# 启用 multipool 命令
 echo '# yiimp
-# It needs passwordless sudo functionality.
+# 需要无密码 sudo 功能
 '""''"${yiimpadmin}"''""' ALL=(ALL) NOPASSWD:ALL
 ' | sudo -E tee /etc/sudoers.d/${yiimpadmin} >/dev/null 2>&1
 
@@ -187,11 +190,11 @@ bash start.sh
 ' | sudo -E tee /usr/bin/multipool >/dev/null 2>&1
 sudo chmod +x /usr/bin/multipool
 
-# Check required files and set global variables
+# 检查必需文件并设置全局变量
 cd $HOME/multipool/install
 source pre_setup.sh
 
-# Create the STORAGE_USER and STORAGE_ROOT directory if they don't already exist.
+# 如果 STORAGE_USER 和 STORAGE_ROOT 目录不存在则创建
 if ! id -u $STORAGE_USER >/dev/null 2>&1; then
 sudo useradd -m $STORAGE_USER
 fi
@@ -199,8 +202,7 @@ if [ ! -d $STORAGE_ROOT ]; then
 sudo mkdir -p $STORAGE_ROOT
 fi
 
-# Save the global options in /etc/multipool.conf so that standalone
-# tools know where to look for data.
+# 将全局选项保存到 /etc/multipool.conf
 echo 'STORAGE_USER='"${STORAGE_USER}"'
 STORAGE_ROOT='"${STORAGE_ROOT}"'
 PUBLIC_IP='"${PUBLIC_IP}"'
@@ -213,16 +215,14 @@ cd ~
 sudo setfacl -m u:${yiimpadmin}:rwx /home/${yiimpadmin}/multipool
 sudo rm -r $HOME/multipool
 clear
-echo "New User is installed..."
-echo -e "$RED Please reboot system and log in as the new user and type$COL_RESET $GREEN multipool$COL_RESET $RED to continue setup...$COL_RESET"
+echo "新用户已安装..."
+echo -e "$RED 请重启系统并以新用户身份登录，然后输入$COL_RESET $GREEN multipool$COL_RESET $RED 继续安装...$COL_RESET"
 exit 0;;
 
 1)
-
 clear
 bash $(basename $0) && exit;;
 
 255)
-
 ;;
 esac
